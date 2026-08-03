@@ -1,0 +1,10 @@
+kind: channel
+type: smtp
+displayName: Work Email
+from: "Agent Work <agent@company.example>"
+host: smtp.company.example
+port: 587
+secure: false
+auth:
+  userEnv: WORK_SMTP_USER
+  passEnv: WORK_SMTP_PASS

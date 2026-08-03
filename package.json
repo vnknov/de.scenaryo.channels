@@ -1,0 +1,45 @@
+{
+  "name": "de.scenaryo.channels",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx watch src/main.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint src test vitest.config.ts",
+    "start": "node dist/main.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify": "npm run check && npm run lint && npm run format:check && npm test && npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/express": "2.0.0",
+    "@modelcontextprotocol/node": "2.0.0",
+    "@modelcontextprotocol/server": "2.0.0",
+    "express": "5.1.0",
+    "hono": "4.12.34",
+    "nodemailer": "9.0.3",
+    "yaml": "2.9.0",
+    "zod": "4.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "@types/express": "5.0.3",
+    "@types/node": "24.2.0",
+    "@types/nodemailer": "7.0.0",
+    "@types/supertest": "6.0.3",
+    "eslint": "^9.32.0",
+    "prettier": "^3.6.2",
+    "supertest": "7.1.4",
+    "tsx": "4.20.3",
+    "typescript": "5.9.2",
+    "typescript-eslint": "^8.39.0",
+    "vitest": "3.2.7"
+  }
+}

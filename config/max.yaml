@@ -1,0 +1,8 @@
+kind: recipient
+id: max
+displayName: Max Mustermann
+channels:
+  work-email:
+    email: max@company.example
+  private-email:
+    email: max@example.org

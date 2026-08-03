@@ -1,0 +1,10 @@
+.git
+.gitignore
+.env
+AGENTS.md
+README.md
+coverage
+dist
+node_modules
+test
+*.log

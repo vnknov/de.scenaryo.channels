@@ -1,0 +1,10 @@
+kind: channel
+type: smtp
+displayName: Private Email
+from: "Agent Private <agent@example.org>"
+host: smtp.example.org
+port: 465
+secure: true
+auth:
+  userEnv: PRIVATE_SMTP_USER
+  passEnv: PRIVATE_SMTP_PASS
