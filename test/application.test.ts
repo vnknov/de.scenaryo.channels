@@ -95,6 +95,50 @@ describe("application services", () => {
       }),
     ).rejects.toThrow("not available for recipient");
   });
+
+  it("logs safe provider diagnostics without exposing raw error details", async () => {
+    const providerError = Object.assign(
+      new Error("Authentication failed for max@example.org using secret-password"),
+      {
+        code: "EAUTH",
+        command: "AUTH PLAIN",
+        responseCode: 535,
+      },
+    );
+    const provider: NotificationProvider = {
+      type: "smtp",
+      send: vi.fn().mockRejectedValue(providerError),
+    };
+    const error = vi.fn();
+    const service = new NotificationService(
+      channels,
+      new Map([[max.id, max]]),
+      new ChannelRegistry([provider]),
+      { render: (message) => ({ subject: message.title, html: "html", text: "text" }) },
+      { info: vi.fn(), error },
+    );
+
+    await expect(
+      service.send({
+        recipientId: "max",
+        channelId: "private-email",
+        message: { title: "Test", summary: "Summary" },
+      }),
+    ).rejects.toThrow("Delivery failed");
+
+    expect(error).toHaveBeenCalledWith(
+      "Notification delivery failed",
+      expect.objectContaining({
+        errorType: "Error",
+        errorCode: "EAUTH",
+        reason: "SMTP authentication was rejected",
+        command: "AUTH PLAIN",
+        responseCode: 535,
+      }),
+    );
+    expect(JSON.stringify(error.mock.calls)).not.toContain("max@example.org");
+    expect(JSON.stringify(error.mock.calls)).not.toContain("secret-password");
+  });
 });
 
 function smtpChannel(id: string, displayName: string): SmtpChannelConfig {

@@ -60,6 +60,7 @@ export class NotificationService {
         recipientId: recipient.id,
         channelId: channel.id,
         provider: provider.type,
+        ...deliveryFailureMetadata(error),
       });
       throw new DeliveryError(deliveryId, { cause: error });
     }
@@ -72,4 +73,56 @@ export class NotificationService {
       provider: provider.type,
     };
   }
+}
+
+function deliveryFailureMetadata(error: unknown): Record<string, unknown> {
+  if (!isRecord(error)) {
+    return { errorType: "unknown" };
+  }
+
+  const code = safeDiagnosticString(error.code);
+  const metadata: Record<string, unknown> = {
+    errorType: error instanceof Error ? (safeDiagnosticString(error.name) ?? "Error") : "unknown",
+  };
+
+  if (code) {
+    metadata.errorCode = code;
+    metadata.reason = deliveryFailureReason(code);
+  }
+
+  const command = safeDiagnosticString(error.command);
+  if (command) {
+    metadata.command = command;
+  }
+  if (typeof error.responseCode === "number" && Number.isInteger(error.responseCode)) {
+    metadata.responseCode = error.responseCode;
+  }
+  const syscall = safeDiagnosticString(error.syscall);
+  if (syscall) {
+    metadata.syscall = syscall;
+  }
+
+  return metadata;
+}
+
+function deliveryFailureReason(code: string): string {
+  const reasons: Readonly<Record<string, string>> = {
+    EAUTH: "SMTP authentication was rejected",
+    ECONNECTION: "Could not connect to the SMTP server",
+    ECONNREFUSED: "The SMTP server refused the connection",
+    EDNS: "The SMTP hostname could not be resolved",
+    EENVELOPE: "The SMTP server rejected the sender or recipient",
+    EMESSAGE: "The SMTP server rejected the message",
+    ESOCKET: "The SMTP socket or TLS connection failed",
+    ETIMEDOUT: "The SMTP operation timed out",
+  };
+  return reasons[code] ?? "The delivery provider reported an error";
+}
+
+function safeDiagnosticString(value: unknown): string | undefined {
+  return typeof value === "string" && /^[a-zA-Z0-9 _-]{1,64}$/.test(value) ? value : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
