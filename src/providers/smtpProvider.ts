@@ -10,6 +10,13 @@ export interface MailTransport {
     subject: string;
     html: string;
     text: string;
+    attachments?:
+      | Array<{
+          filename: string;
+          contentType: string;
+          content: Buffer;
+        }>
+      | undefined;
   }): Promise<unknown>;
   close(): void;
 }
@@ -51,6 +58,15 @@ export class SmtpProvider implements NotificationProvider {
         subject: input.message.subject,
         html: input.message.html,
         text: input.message.text,
+        ...(input.message.attachments?.length
+          ? {
+              attachments: input.message.attachments.map((attachment) => ({
+                filename: attachment.filename,
+                contentType: attachment.contentType,
+                content: attachment.content,
+              })),
+            }
+          : {}),
       });
     } finally {
       transport.close();

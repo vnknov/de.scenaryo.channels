@@ -98,7 +98,7 @@ export function createChannelsMcpServer(services: McpServices): McpServer {
     {
       title: "Send a notification",
       description:
-        "Sends a structured notification to a recipient through one concrete channel instance. Raw HTML is not accepted.",
+        "Sends a structured notification with optional Base64 attachments to a recipient through one concrete channel instance. Raw HTML and file paths are not accepted.",
       inputSchema: sendNotificationInputSchema,
       outputSchema: sendNotificationOutputSchema,
       annotations: {

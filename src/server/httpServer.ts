@@ -26,7 +26,7 @@ export function createHttpApplication(
     ...(options.allowedHosts?.length
       ? { allowedHosts: options.allowedHosts, allowedOrigins: options.allowedHosts }
       : {}),
-    jsonLimit: "100kb",
+    jsonLimit: "15mb",
   });
   const mcpHandler = createMcpHandler(() => createChannelsMcpServer(services), {
     legacy: "stateless",

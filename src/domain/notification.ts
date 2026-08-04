@@ -3,17 +3,31 @@ export interface NotificationAction {
   url: string;
 }
 
+export interface NotificationAttachment {
+  filename: string;
+  contentType: string;
+  contentBase64: string;
+}
+
 export interface NotificationMessage {
   title: string;
   summary: string;
   details?: string[] | undefined;
   actions?: NotificationAction[] | undefined;
+  attachments?: NotificationAttachment[] | undefined;
+}
+
+export interface RenderedNotificationAttachment {
+  filename: string;
+  contentType: string;
+  content: Buffer;
 }
 
 export interface RenderedNotification {
   subject: string;
   html: string;
   text: string;
+  attachments?: RenderedNotificationAttachment[] | undefined;
 }
 
 export interface SendNotificationCommand {

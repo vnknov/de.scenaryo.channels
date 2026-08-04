@@ -26,7 +26,18 @@ describe("SmtpProvider", () => {
       channelId: channel.id,
       channel,
       recipient: { email: "max@company.example" },
-      message: { subject: "Status", html: "<p>Status</p>", text: "Status" },
+      message: {
+        subject: "Status",
+        html: "<p>Status</p>",
+        text: "Status",
+        attachments: [
+          {
+            filename: "status.txt",
+            contentType: "text/plain",
+            content: Buffer.from("Build passed", "utf8"),
+          },
+        ],
+      },
     });
 
     expect(createTransport).toHaveBeenCalledWith({
@@ -43,6 +54,13 @@ describe("SmtpProvider", () => {
       subject: "Status",
       html: "<p>Status</p>",
       text: "Status",
+      attachments: [
+        {
+          filename: "status.txt",
+          contentType: "text/plain",
+          content: Buffer.from("Build passed", "utf8"),
+        },
+      ],
     });
     expect(close).toHaveBeenCalledOnce();
   });

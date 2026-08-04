@@ -231,16 +231,25 @@ interface NotificationMessage {
     label: string;
     url: string;
   }>;
+  attachments?: Array<{
+    filename: string;
+    contentType: string;
+    contentBase64: string;
+  }>;
 }
 ```
 
-Enforce reasonable length and item-count limits in the input schema.
+Enforce reasonable length and item-count limits in the input schema. Attachments are Base64-encoded
+raw bytes, never file paths or URLs. Allow at most 5 attachments, 5 MiB decoded per attachment, and
+10 MiB decoded in total. Reject paths, control characters, malformed Base64, data-URL prefixes, and
+invalid MIME types.
 
 The server generates:
 
 - The email subject from `title`.
 - Safe HTML from all fields.
 - A plain-text fallback from the same fields.
+- Delivery-ready binary attachments from validated Base64 content.
 
 Escape every text value before embedding it in HTML. Accept action URLs only when they use `http:`
 or `https:`. Never accept scripts, inline event handlers, raw HTML, or arbitrary CSS from MCP
@@ -300,6 +309,13 @@ Input:
       {
         "label": "Open logs",
         "url": "https://example.org/logs/123"
+      }
+    ],
+    "attachments": [
+      {
+        "filename": "report.txt",
+        "contentType": "text/plain",
+        "contentBase64": "cmVwb3J0IGNvbnRlbnRz"
       }
     ]
   }
@@ -417,6 +433,7 @@ At minimum, add tests for:
 - Filtering channels by recipient.
 - Notification use-case routing by concrete channel ID and provider type.
 - HTML escaping, plain-text rendering, and unsafe action URL rejection.
+- Attachment Base64 validation, filename safety, decoded size limits, and SMTP Buffer delivery.
 - Missing and invalid bearer tokens.
 - MCP tool input validation and safe errors.
 - SMTP provider behavior with Nodemailer mocked or injected behind a narrow mail transport boundary.

@@ -33,13 +33,22 @@ Agents send structured content rather than raw HTML:
         "label": "Open logs",
         "url": "https://example.org/logs/123"
       }
+    ],
+    "attachments": [
+      {
+        "filename": "report.txt",
+        "contentType": "text/plain",
+        "contentBase64": "cmVwb3J0IGNvbnRlbnRz"
+      }
     ]
   }
 }
 ```
 
 The server escapes all content and renders both HTML and plain text. Action URLs are restricted to
-HTTP and HTTPS.
+HTTP and HTTPS. Attachments contain raw file bytes encoded as Base64, without a `data:` URL prefix.
+Filenames must not contain paths or control characters. A message may contain up to 5 attachments,
+with a maximum decoded size of 5 MiB per file and 10 MiB in total.
 
 ## Configuration
 
