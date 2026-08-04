@@ -49,13 +49,15 @@ channel references stop startup with an error.
 
 ### Channels
 
-The filename without its extension is the concrete channel ID. Provider type and channel ID are
-deliberately different concepts: any number of channel files can use `type: smtp`.
+Each channel declares its stable `id` in YAML. Filenames are used only for discovery and error
+messages, so files may be renamed without changing recipient mappings. Provider type and channel ID
+are deliberately different concepts: any number of channel files can use `type: smtp`.
 
 `config/work-email.yaml`:
 
 ```yaml
 kind: channel
+id: work-email
 type: smtp
 displayName: Work Email
 from: "Agent Work <agent@company.example>"

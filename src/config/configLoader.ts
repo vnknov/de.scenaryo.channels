@@ -42,22 +42,17 @@ export async function loadConfiguration(
     }
 
     if (kindResult.data.kind === "channel") {
-      const channelId = path.basename(file.name, path.extname(file.name));
-      if (!/^[a-zA-Z0-9._-]+$/.test(channelId)) {
-        throw invalidFile(file.name, "channel filename contains unsafe characters");
-      }
-      if (channels.has(channelId)) {
-        throw invalidFile(file.name, `duplicate channel ID '${channelId}'`);
-      }
-
       const result = smtpChannelFileSchema.safeParse(document);
       if (!result.success) {
         throw invalidFile(file.name, result.error.message);
       }
+      if (channels.has(result.data.id)) {
+        throw invalidFile(file.name, `duplicate channel ID '${result.data.id}'`);
+      }
       assertCredential(result.data.auth.userEnv, environment, file.name);
       assertCredential(result.data.auth.passEnv, environment, file.name);
-      channels.set(channelId, {
-        id: channelId,
+      channels.set(result.data.id, {
+        id: result.data.id,
         type: result.data.type,
         displayName: result.data.displayName,
         from: result.data.from,

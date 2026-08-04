@@ -1,4 +1,5 @@
 kind: channel
+id: private-email
 type: smtp
 displayName: Private Email
 from: "Agent Private <agent@example.org>"

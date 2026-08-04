@@ -15,6 +15,7 @@ const environmentVariableSchema = z
 export const smtpChannelFileSchema = z
   .object({
     kind: z.literal("channel"),
+    id: identifierSchema,
     type: z.literal("smtp"),
     displayName: z.string().trim().min(1).max(200),
     from: z

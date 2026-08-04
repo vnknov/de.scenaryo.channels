@@ -93,7 +93,7 @@ A provider type is not a channel ID.
 - A provider type identifies a transport implementation, such as `smtp`.
 - A channel is one configured instance of that provider.
 - Multiple channels may use the same provider type.
-- The channel ID is derived from the YAML filename without its extension.
+- Every channel declares a stable `id`; filenames are used only for discovery and diagnostics.
 - Recipients refer to concrete channel IDs, never provider types.
 
 For example, `work-email.yaml` and `private-email.yaml` are two distinct channels that both use the
@@ -105,6 +105,7 @@ single SMTP provider implementation.
 
 ```yaml
 kind: channel
+id: work-email
 type: smtp
 displayName: Work Email
 from: "Agent Work <agent@company.example>"
@@ -120,6 +121,7 @@ auth:
 
 ```yaml
 kind: channel
+id: private-email
 type: smtp
 displayName: Private Email
 from: "Agent Private <agent@example.org>"
@@ -131,7 +133,7 @@ auth:
   passEnv: PRIVATE_SMTP_PASS
 ```
 
-The resulting channel IDs are `work-email` and `private-email`.
+The resulting channel IDs are `work-email` and `private-email`, independently of the filenames.
 
 ## Recipient Model
 
@@ -170,7 +172,7 @@ Validate configuration eagerly at startup and terminate with actionable error me
 invalid. At minimum, validate:
 
 - YAML syntax and schema using Zod.
-- Safe channel IDs derived from filenames, using a documented pattern such as `^[a-zA-Z0-9._-]+$`.
+- Safe channel and recipient IDs from YAML, using a documented pattern such as `^[a-zA-Z0-9._-]+$`.
 - Unique channel IDs and recipient IDs.
 - Known provider type for every channel.
 - Existing channel references for every recipient.

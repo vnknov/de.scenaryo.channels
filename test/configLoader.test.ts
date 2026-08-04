@@ -13,8 +13,8 @@ afterEach(async () => {
 describe("loadConfiguration", () => {
   it("discovers mixed channel and recipient files in one directory", async () => {
     const directory = await fixtureDirectory({
-      "work-email.yaml": channelYaml("WORK_USER", "WORK_PASS"),
-      "private-email.yml": channelYaml("PRIVATE_USER", "PRIVATE_PASS"),
+      "outgoing-account-a.yaml": channelYaml("work-email", "WORK_USER", "WORK_PASS"),
+      "outgoing-account-b.yml": channelYaml("private-email", "PRIVATE_USER", "PRIVATE_PASS"),
       "max.yaml": `
 kind: recipient
 id: max
@@ -35,7 +35,7 @@ channels:
       PRIVATE_PASS: "private-pass",
     });
 
-    expect([...result.channels.keys()]).toEqual(["private-email", "work-email"]);
+    expect([...result.channels.keys()].sort()).toEqual(["private-email", "work-email"]);
     expect(result.channels.get("work-email")).toMatchObject({
       id: "work-email",
       type: "smtp",
@@ -56,7 +56,7 @@ channels:
 
   it("rejects duplicate recipient IDs", async () => {
     const directory = await fixtureDirectory({
-      "mail.yaml": channelYaml("USER", "PASS"),
+      "mail.yaml": channelYaml("mail", "USER", "PASS"),
       "max-one.yaml": recipientYaml("max", "mail"),
       "max-two.yaml": recipientYaml("max", "mail"),
     });
@@ -66,10 +66,10 @@ channels:
     );
   });
 
-  it("rejects duplicate channel IDs across YAML extensions", async () => {
+  it("rejects duplicate channel IDs across differently named files", async () => {
     const directory = await fixtureDirectory({
-      "mail.yaml": channelYaml("USER", "PASS"),
-      "mail.yml": channelYaml("USER", "PASS"),
+      "first-account.yaml": channelYaml("mail", "USER", "PASS"),
+      "second-account.yml": channelYaml("mail", "USER", "PASS"),
     });
 
     await expect(loadConfiguration(directory, { USER: "user", PASS: "pass" })).rejects.toThrow(
@@ -77,14 +77,14 @@ channels:
     );
   });
 
-  it("rejects unsafe channel filenames", async () => {
+  it("uses the configured channel ID independently of the filename", async () => {
     const directory = await fixtureDirectory({
-      "unsafe channel.yaml": channelYaml("USER", "PASS"),
+      "descriptive outgoing account.yaml": channelYaml("stable-mail-id", "USER", "PASS"),
     });
 
-    await expect(loadConfiguration(directory, { USER: "user", PASS: "pass" })).rejects.toThrow(
-      "channel filename contains unsafe characters",
-    );
+    const result = await loadConfiguration(directory, { USER: "user", PASS: "pass" });
+
+    expect([...result.channels.keys()]).toEqual(["stable-mail-id"]);
   });
 
   it("rejects recipients referencing unknown channels", async () => {
@@ -99,7 +99,7 @@ channels:
 
   it("rejects missing credential environment variables", async () => {
     const directory = await fixtureDirectory({
-      "mail.yaml": channelYaml("SMTP_USER", "SMTP_PASS"),
+      "mail.yaml": channelYaml("mail", "SMTP_USER", "SMTP_PASS"),
     });
 
     await expect(loadConfiguration(directory, { SMTP_USER: "user" })).rejects.toThrow(
@@ -119,7 +119,7 @@ channels:
 
   it("rejects malformed SMTP sender and host settings", async () => {
     const directory = await fixtureDirectory({
-      "mail.yaml": channelYaml("USER", "PASS")
+      "mail.yaml": channelYaml("mail", "USER", "PASS")
         .replace("Agent <agent@example.org>", "not-an-address")
         .replace("smtp.example.org", "bad host"),
     });
@@ -141,9 +141,10 @@ async function fixtureDirectory(files: Record<string, string>): Promise<string> 
   return directory;
 }
 
-function channelYaml(userEnv: string, passEnv: string): string {
+function channelYaml(id: string, userEnv: string, passEnv: string): string {
   return `
 kind: channel
+id: ${id}
 type: smtp
 displayName: Email
 from: Agent <agent@example.org>

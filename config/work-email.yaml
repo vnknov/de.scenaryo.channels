@@ -1,4 +1,5 @@
 kind: channel
+id: work-email
 type: smtp
 displayName: Work Email
 from: "Agent Work <agent@company.example>"
