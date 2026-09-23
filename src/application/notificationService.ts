@@ -60,7 +60,7 @@ export class NotificationService {
         recipientId: recipient.id,
         channelId: channel.id,
         provider: provider.type,
-        ...deliveryFailureMetadata(error),
+        ...deliveryFailureMetadata(error, channel),
       });
       throw new DeliveryError(deliveryId, { cause: error });
     }
@@ -75,7 +75,7 @@ export class NotificationService {
   }
 }
 
-function deliveryFailureMetadata(error: unknown): Record<string, unknown> {
+function deliveryFailureMetadata(error: unknown, channel: ChannelConfig): Record<string, unknown> {
   if (!isRecord(error)) {
     return { errorType: "unknown" };
   }
@@ -88,18 +88,42 @@ function deliveryFailureMetadata(error: unknown): Record<string, unknown> {
   if (code) {
     metadata.errorCode = code;
     metadata.reason = deliveryFailureReason(code);
+    if (code === "EAUTH") {
+      metadata.diagnosticHint =
+        "Check the configured SMTP credentials, whether the account requires an app password or OAuth, and whether SMTP authentication is enabled for this host.";
+    }
   }
 
   const command = safeDiagnosticString(error.command);
   if (command) {
     metadata.command = command;
+    const authMechanism = smtpAuthMechanism(command);
+    if (authMechanism) {
+      metadata.smtpAuthMechanism = authMechanism;
+    }
   }
   if (typeof error.responseCode === "number" && Number.isInteger(error.responseCode)) {
     metadata.responseCode = error.responseCode;
   }
+  const smtpResponse = safeSmtpResponse(error.response);
+  if (smtpResponse) {
+    metadata.smtpResponse = smtpResponse;
+    const enhancedStatusCode = smtpEnhancedStatusCode(smtpResponse);
+    if (enhancedStatusCode) {
+      metadata.smtpEnhancedStatusCode = enhancedStatusCode;
+    }
+  }
   const syscall = safeDiagnosticString(error.syscall);
   if (syscall) {
     metadata.syscall = syscall;
+  }
+
+  if (channel.type === "smtp") {
+    metadata.smtpHost = channel.host;
+    metadata.smtpPort = channel.port;
+    metadata.smtpSecure = channel.secure;
+    metadata.smtpUserEnv = channel.auth.userEnv;
+    metadata.smtpPassEnv = channel.auth.passEnv;
   }
 
   return metadata;
@@ -121,6 +145,42 @@ function deliveryFailureReason(code: string): string {
 
 function safeDiagnosticString(value: unknown): string | undefined {
   return typeof value === "string" && /^[a-zA-Z0-9 _-]{1,64}$/.test(value) ? value : undefined;
+}
+
+function smtpAuthMechanism(command: string): string | undefined {
+  const match = /^AUTH ([A-Z0-9_-]{1,32})$/.exec(command);
+  return match?.[1];
+}
+
+function safeSmtpResponse(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const normalized = stripUnsafeSmtpResponseCharacters(value).replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return undefined;
+  }
+
+  return normalized
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[redacted-email]")
+    .replace(/\b(password|pass|secret|token|api-?key)\s*[=:]\s*\S+/gi, "$1=[redacted]")
+    .slice(0, 512);
+}
+
+function stripUnsafeSmtpResponseCharacters(value: string): string {
+  let result = "";
+  for (const character of value) {
+    const code = character.charCodeAt(0);
+    if (code === 9 || code === 10 || code === 13 || (code >= 32 && code <= 126)) {
+      result += character;
+    }
+  }
+  return result;
+}
+
+function smtpEnhancedStatusCode(response: string): string | undefined {
+  return /\b[245]\.\d{1,3}\.\d{1,3}\b/.exec(response)?.[0];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

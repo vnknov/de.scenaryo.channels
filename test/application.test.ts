@@ -102,6 +102,7 @@ describe("application services", () => {
       {
         code: "EAUTH",
         command: "AUTH PLAIN",
+        response: "535 5.7.8 Authentication failed for max@example.org password=secret-password",
         responseCode: 535,
       },
     );
@@ -133,7 +134,15 @@ describe("application services", () => {
         errorCode: "EAUTH",
         reason: "SMTP authentication was rejected",
         command: "AUTH PLAIN",
+        smtpAuthMechanism: "PLAIN",
         responseCode: 535,
+        smtpResponse: "535 5.7.8 Authentication failed for [redacted-email] password=[redacted]",
+        smtpEnhancedStatusCode: "5.7.8",
+        smtpHost: "smtp.example.org",
+        smtpPort: 587,
+        smtpSecure: false,
+        smtpUserEnv: "SMTP_USER",
+        smtpPassEnv: "SMTP_PASS",
       }),
     );
     expect(JSON.stringify(error.mock.calls)).not.toContain("max@example.org");
