@@ -184,21 +184,31 @@ function smtpEnhancedStatusCode(response: string): string | undefined {
   return /\b[245]\.\d{1,3}\.\d{1,3}\b/.exec(response)?.[0];
 }
 
-function safeSmtpCredentialDiagnostics(value: unknown): Record<string, boolean> {
+function safeSmtpCredentialDiagnostics(value: unknown): Record<string, boolean | number | string> {
   if (!isRecord(value)) {
     return {};
   }
 
-  const metadata: Record<string, boolean> = {};
-  for (const key of smtpCredentialDiagnosticKeys) {
+  const metadata: Record<string, boolean | number | string> = {};
+  for (const key of smtpCredentialBooleanDiagnosticKeys) {
     if (typeof value[key] === "boolean") {
+      metadata[key] = value[key];
+    }
+  }
+  for (const key of smtpCredentialNumberDiagnosticKeys) {
+    if (typeof value[key] === "number" && Number.isInteger(value[key]) && value[key] >= 0) {
+      metadata[key] = value[key];
+    }
+  }
+  for (const key of smtpCredentialStringDiagnosticKeys) {
+    if (typeof value[key] === "string" && /^[a-f0-9]{12}$/.test(value[key])) {
       metadata[key] = value[key];
     }
   }
   return metadata;
 }
 
-const smtpCredentialDiagnosticKeys = [
+const smtpCredentialBooleanDiagnosticKeys = [
   "smtpUserEnvResolved",
   "smtpUserEnvNonEmpty",
   "smtpUserHasLeadingOrTrailingWhitespace",
@@ -209,6 +219,13 @@ const smtpCredentialDiagnosticKeys = [
   "smtpPassHasLeadingOrTrailingWhitespace",
   "smtpPassContainsControlCharacters",
   "smtpPassContainsQuoteCharacters",
+] as const;
+
+const smtpCredentialNumberDiagnosticKeys = ["smtpUserValueLength", "smtpPassValueLength"] as const;
+
+const smtpCredentialStringDiagnosticKeys = [
+  "smtpUserSha256Prefix",
+  "smtpPassSha256Prefix",
 ] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {

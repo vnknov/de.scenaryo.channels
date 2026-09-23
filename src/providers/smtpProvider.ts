@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import nodemailer from "nodemailer";
 import type { SentMessageInfo } from "nodemailer";
 import type SMTPTransport from "nodemailer/lib/smtp-transport/index.js";
@@ -26,11 +27,15 @@ export type MailTransportFactory = (options: SMTPTransport.Options) => MailTrans
 interface SmtpCredentialDiagnostics {
   smtpUserEnvResolved: boolean;
   smtpUserEnvNonEmpty: boolean;
+  smtpUserValueLength: number | undefined;
+  smtpUserSha256Prefix: string | undefined;
   smtpUserHasLeadingOrTrailingWhitespace: boolean;
   smtpUserContainsControlCharacters: boolean;
   smtpUserContainsQuoteCharacters: boolean;
   smtpPassEnvResolved: boolean;
   smtpPassEnvNonEmpty: boolean;
+  smtpPassValueLength: number | undefined;
+  smtpPassSha256Prefix: string | undefined;
   smtpPassHasLeadingOrTrailingWhitespace: boolean;
   smtpPassContainsControlCharacters: boolean;
   smtpPassContainsQuoteCharacters: boolean;
@@ -100,15 +105,25 @@ function smtpCredentialDiagnostics(
   return {
     smtpUserEnvResolved: user !== undefined,
     smtpUserEnvNonEmpty: Boolean(user?.trim()),
+    smtpUserValueLength: user?.length,
+    smtpUserSha256Prefix: sha256Prefix(user),
     smtpUserHasLeadingOrTrailingWhitespace: hasLeadingOrTrailingWhitespace(user),
     smtpUserContainsControlCharacters: containsControlCharacters(user),
     smtpUserContainsQuoteCharacters: containsQuoteCharacters(user),
     smtpPassEnvResolved: pass !== undefined,
     smtpPassEnvNonEmpty: Boolean(pass?.trim()),
+    smtpPassValueLength: pass?.length,
+    smtpPassSha256Prefix: sha256Prefix(pass),
     smtpPassHasLeadingOrTrailingWhitespace: hasLeadingOrTrailingWhitespace(pass),
     smtpPassContainsControlCharacters: containsControlCharacters(pass),
     smtpPassContainsQuoteCharacters: containsQuoteCharacters(pass),
   };
+}
+
+function sha256Prefix(value: string | undefined): string | undefined {
+  return value === undefined
+    ? undefined
+    : createHash("sha256").update(value).digest("hex").slice(0, 12);
 }
 
 function hasLeadingOrTrailingWhitespace(value: string | undefined): boolean {
