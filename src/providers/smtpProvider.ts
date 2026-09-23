@@ -23,6 +23,19 @@ export interface MailTransport {
 
 export type MailTransportFactory = (options: SMTPTransport.Options) => MailTransport;
 
+interface SmtpCredentialDiagnostics {
+  smtpUserEnvResolved: boolean;
+  smtpUserEnvNonEmpty: boolean;
+  smtpUserHasLeadingOrTrailingWhitespace: boolean;
+  smtpUserContainsControlCharacters: boolean;
+  smtpUserContainsQuoteCharacters: boolean;
+  smtpPassEnvResolved: boolean;
+  smtpPassEnvNonEmpty: boolean;
+  smtpPassHasLeadingOrTrailingWhitespace: boolean;
+  smtpPassContainsControlCharacters: boolean;
+  smtpPassContainsQuoteCharacters: boolean;
+}
+
 export class SmtpProvider implements NotificationProvider {
   public readonly type = "smtp";
 
@@ -38,8 +51,12 @@ export class SmtpProvider implements NotificationProvider {
 
     const user = this.environment[input.channel.auth.userEnv];
     const pass = this.environment[input.channel.auth.passEnv];
+    const credentialDiagnostics = smtpCredentialDiagnostics(user, pass);
     if (!user?.trim() || !pass?.trim()) {
-      throw new Error("SMTP credentials are unavailable.");
+      throw withSmtpCredentialDiagnostics(
+        new Error("SMTP credentials are unavailable."),
+        credentialDiagnostics,
+      );
     }
 
     const transport = this.createTransport({
@@ -68,10 +85,62 @@ export class SmtpProvider implements NotificationProvider {
             }
           : {}),
       });
+    } catch (error) {
+      throw withSmtpCredentialDiagnostics(error, credentialDiagnostics);
     } finally {
       transport.close();
     }
   }
+}
+
+function smtpCredentialDiagnostics(
+  user: string | undefined,
+  pass: string | undefined,
+): SmtpCredentialDiagnostics {
+  return {
+    smtpUserEnvResolved: user !== undefined,
+    smtpUserEnvNonEmpty: Boolean(user?.trim()),
+    smtpUserHasLeadingOrTrailingWhitespace: hasLeadingOrTrailingWhitespace(user),
+    smtpUserContainsControlCharacters: containsControlCharacters(user),
+    smtpUserContainsQuoteCharacters: containsQuoteCharacters(user),
+    smtpPassEnvResolved: pass !== undefined,
+    smtpPassEnvNonEmpty: Boolean(pass?.trim()),
+    smtpPassHasLeadingOrTrailingWhitespace: hasLeadingOrTrailingWhitespace(pass),
+    smtpPassContainsControlCharacters: containsControlCharacters(pass),
+    smtpPassContainsQuoteCharacters: containsQuoteCharacters(pass),
+  };
+}
+
+function hasLeadingOrTrailingWhitespace(value: string | undefined): boolean {
+  return value !== undefined && value !== value.trim();
+}
+
+function containsControlCharacters(value: string | undefined): boolean {
+  if (value === undefined) {
+    return false;
+  }
+
+  for (const character of value) {
+    const code = character.charCodeAt(0);
+    if (code <= 31 || code === 127) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function containsQuoteCharacters(value: string | undefined): boolean {
+  return value !== undefined && /["']/.test(value);
+}
+
+function withSmtpCredentialDiagnostics(
+  error: unknown,
+  diagnostics: SmtpCredentialDiagnostics,
+): unknown {
+  if (typeof error === "object" && error !== null) {
+    Object.assign(error, { smtpCredentialDiagnostics: diagnostics });
+  }
+  return error;
 }
 
 function defaultTransportFactory(options: SMTPTransport.Options): MailTransport {

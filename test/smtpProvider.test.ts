@@ -94,4 +94,47 @@ describe("SmtpProvider", () => {
     ).rejects.toBe(deliveryError);
     expect(close).toHaveBeenCalledOnce();
   });
+
+  it("attaches safe credential diagnostics when delivery fails", async () => {
+    const deliveryError = new Error("auth rejected");
+    const sendMail = vi.fn().mockRejectedValue(deliveryError);
+    const close = vi.fn();
+    const provider = new SmtpProvider({ USER: "smtp-user", PASS: " 'smtp-pass' " }, () => ({
+      sendMail,
+      close,
+    }));
+    const channel: SmtpChannelConfig = {
+      id: "mail",
+      type: "smtp",
+      displayName: "Mail",
+      from: "Agent <agent@example.org>",
+      host: "smtp.example.org",
+      port: 587,
+      secure: false,
+      auth: { userEnv: "USER", passEnv: "PASS" },
+    };
+
+    await expect(
+      provider.send({
+        channelId: channel.id,
+        channel,
+        recipient: { email: "max@example.org" },
+        message: { subject: "Status", html: "<p>Status</p>", text: "Status" },
+      }),
+    ).rejects.toMatchObject({
+      smtpCredentialDiagnostics: {
+        smtpUserEnvResolved: true,
+        smtpUserEnvNonEmpty: true,
+        smtpUserHasLeadingOrTrailingWhitespace: false,
+        smtpUserContainsControlCharacters: false,
+        smtpUserContainsQuoteCharacters: false,
+        smtpPassEnvResolved: true,
+        smtpPassEnvNonEmpty: true,
+        smtpPassHasLeadingOrTrailingWhitespace: true,
+        smtpPassContainsControlCharacters: false,
+        smtpPassContainsQuoteCharacters: true,
+      },
+    });
+    expect(JSON.stringify(deliveryError)).not.toContain("smtp-pass");
+  });
 });

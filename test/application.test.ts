@@ -104,6 +104,19 @@ describe("application services", () => {
         command: "AUTH PLAIN",
         response: "535 5.7.8 Authentication failed for max@example.org password=secret-password",
         responseCode: 535,
+        smtpCredentialDiagnostics: {
+          smtpUserEnvResolved: true,
+          smtpUserEnvNonEmpty: true,
+          smtpUserHasLeadingOrTrailingWhitespace: false,
+          smtpUserContainsControlCharacters: false,
+          smtpUserContainsQuoteCharacters: false,
+          smtpPassEnvResolved: true,
+          smtpPassEnvNonEmpty: true,
+          smtpPassHasLeadingOrTrailingWhitespace: true,
+          smtpPassContainsControlCharacters: false,
+          smtpPassContainsQuoteCharacters: true,
+          ignored: "not logged",
+        },
       },
     );
     const provider: NotificationProvider = {
@@ -143,10 +156,21 @@ describe("application services", () => {
         smtpSecure: false,
         smtpUserEnv: "SMTP_USER",
         smtpPassEnv: "SMTP_PASS",
+        smtpUserEnvResolved: true,
+        smtpUserEnvNonEmpty: true,
+        smtpUserHasLeadingOrTrailingWhitespace: false,
+        smtpUserContainsControlCharacters: false,
+        smtpUserContainsQuoteCharacters: false,
+        smtpPassEnvResolved: true,
+        smtpPassEnvNonEmpty: true,
+        smtpPassHasLeadingOrTrailingWhitespace: true,
+        smtpPassContainsControlCharacters: false,
+        smtpPassContainsQuoteCharacters: true,
       }),
     );
     expect(JSON.stringify(error.mock.calls)).not.toContain("max@example.org");
     expect(JSON.stringify(error.mock.calls)).not.toContain("secret-password");
+    expect(JSON.stringify(error.mock.calls)).not.toContain("not logged");
   });
 });
 

@@ -117,6 +117,7 @@ function deliveryFailureMetadata(error: unknown, channel: ChannelConfig): Record
   if (syscall) {
     metadata.syscall = syscall;
   }
+  Object.assign(metadata, safeSmtpCredentialDiagnostics(error.smtpCredentialDiagnostics));
 
   if (channel.type === "smtp") {
     metadata.smtpHost = channel.host;
@@ -182,6 +183,33 @@ function stripUnsafeSmtpResponseCharacters(value: string): string {
 function smtpEnhancedStatusCode(response: string): string | undefined {
   return /\b[245]\.\d{1,3}\.\d{1,3}\b/.exec(response)?.[0];
 }
+
+function safeSmtpCredentialDiagnostics(value: unknown): Record<string, boolean> {
+  if (!isRecord(value)) {
+    return {};
+  }
+
+  const metadata: Record<string, boolean> = {};
+  for (const key of smtpCredentialDiagnosticKeys) {
+    if (typeof value[key] === "boolean") {
+      metadata[key] = value[key];
+    }
+  }
+  return metadata;
+}
+
+const smtpCredentialDiagnosticKeys = [
+  "smtpUserEnvResolved",
+  "smtpUserEnvNonEmpty",
+  "smtpUserHasLeadingOrTrailingWhitespace",
+  "smtpUserContainsControlCharacters",
+  "smtpUserContainsQuoteCharacters",
+  "smtpPassEnvResolved",
+  "smtpPassEnvNonEmpty",
+  "smtpPassHasLeadingOrTrailingWhitespace",
+  "smtpPassContainsControlCharacters",
+  "smtpPassContainsQuoteCharacters",
+] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
